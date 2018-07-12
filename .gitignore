@@ -6,3 +6,7 @@ dotGitDir.dirs
 du.dirs
 gitFsck.txt
 gitFsckError.txt
+all.files
+dotGitFile.dirs
+dotGitmodules.dirs
+dotGitmodules.files

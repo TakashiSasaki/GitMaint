@@ -27,9 +27,9 @@ all.files: find.txt
 	cat $< | sed -n '/[^/]$$/p' | sort >$@
 
 dotGitDir.dirs: all.dirs
-	cat all.dirs| sed -n 's/\/.git$$//p' | sort >$@
+	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 
-dotGitFile.dirs: files.txt
+dotGitFile.dirs: all.files
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 
 gitFsck.txt: dotGitDir.dirs
@@ -44,4 +44,11 @@ gitGc: gitFsckError.txt
 
 gitUnbornBranch.txt: gitFsck.txt
 	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{g;p}' >$@
+
+dotGitmodules.files: all.files
+	cat $< | sed -n -e '/\/.gitmodules$$/p' >$@
+
+dotGitmodules.dirs: all.files
+	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
+
 
