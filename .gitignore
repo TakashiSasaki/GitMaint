@@ -13,3 +13,4 @@ dotGitmodules.files
 testSubmodule/sub1/
 testSubmodule/.gitmodules
 testSubmodule/sub2
+testSubmodule/.gitignore
