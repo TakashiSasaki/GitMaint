@@ -10,3 +10,4 @@ all.files
 dotGitFile.dirs
 dotGitmodules.dirs
 dotGitmodules.files
+testSubmodule/sub1/
