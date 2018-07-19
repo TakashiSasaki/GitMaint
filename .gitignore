@@ -11,3 +11,5 @@ dotGitFile.dirs
 dotGitmodules.dirs
 dotGitmodules.files
 testSubmodule/sub1/
+testSubmodule/.gitmodules
+testSubmodule/sub2

@@ -23,5 +23,5 @@ sub2: sub1 .git
 clean:
 	-find . -regex ".+[.]git$$" -exec rm -rf {} \;
 	rm -rf sub1 sub2
-	rm -f .gitmodules
+	rm -f .gitmodules .gitignore
 
