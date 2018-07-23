@@ -1,6 +1,11 @@
-.PHONY: check gitGc
+.PHONY: check gitGc 
+
+.DELETE_ON_ERROR: gitStatusDirty.dirs
 
 check: gitFsckError.txt
+	@echo Showing gitFsckError.txt ..
+	@cat $<
+	@echo Done.
 
 clean:
 	rm -rf find.txt du.txt dirs.txt files.txt gitDir.txt gitFile.txt
@@ -51,4 +56,8 @@ dotGitmodules.files: all.files
 dotGitmodules.dirs: all.files
 	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
 
+gitStatusDirty.dirs: dotGitDir.dirs
+	cat $< | xargs -n 1 sh -c 'cd "$$1" ; pwd ; git status --porcelain' _ | sed -n -e "/^\//{h}" -e "/^ /{g;p}" >$@
+	@cat $@
+	@test `wc -l x | awk '{print $$1}'` -ne 0
 
