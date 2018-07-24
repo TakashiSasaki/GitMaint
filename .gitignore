@@ -16,3 +16,5 @@ testSubmodule/sub2
 testSubmodule/.gitignore
 dotGit.dirs
 temp
+gitStatus.txt
+gitStatusDirty.dirs

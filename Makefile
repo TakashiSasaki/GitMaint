@@ -61,9 +61,11 @@ dotGitmodules.dirs: all.files
 dotGit.dirs: dotGitDir.dirs dotGitFile.dirs
 	cat $^ | sort | uniq >$@
 
-gitStatusDirty.dirs: dotGit.dirs
-	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git status --porcelain' _>temp
-	cat temp | sed -n -e "/^\//{h}" -e "/^ /{g;p}" >$@
+gitStatusDirty.dirs: gitStatus.txt
+	cat $^ | sed -n -e "/^\//{h}" -e "/^ /{g;p}" >$@
 	@cat $@
 	@test `wc -l $@ | awk '{print $$1}'` -ne 0
+
+gitStatus.txt: dotGit.dirs
+	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git status --porcelain' _>$@
 
