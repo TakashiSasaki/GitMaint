@@ -4,10 +4,7 @@
 
 .INTERMEDIATE: temp
 
-check: gitFsckError.txt
-	@echo Showing gitFsckError.txt ..
-	@cat $<
-	@echo Done.
+check: clean gitFsckError
 
 clean:
 	rm -rf find.txt du.txt dirs.txt files.txt gitDir.txt gitFile.txt
@@ -71,5 +68,4 @@ gitClean.txt: dotGit.dirs
 
 gitCleanWouldRemove: gitClean.txt
 	@cat $^ | sed -n -e '/^Would skip repository/d' -e '/^\//{h}' -e '/^Would remove/{x;p;x;p}'
-
 
