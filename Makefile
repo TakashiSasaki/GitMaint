@@ -40,13 +40,14 @@ gitFsck.txt: dotGit.dirs
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
 
 gitFsckError: gitFsck.txt
+	@echo gitFsckError
 	@cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}'
 
 gitGc: gitFsckError.dirs
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git gc --prune=now' _
 
 gitFsckUnborn: gitFsck.txt
-	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{g;p}' 
+	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{x;p;x;p}' 
 
 dotGitmodules.files: all.files
 	cat $< | sed -n -e '/\/.gitmodules$$/p' >$@
@@ -67,5 +68,6 @@ gitClean.txt: dotGit.dirs
 	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git clean -ndx' _ >$@
 
 gitCleanWouldRemove: gitClean.txt
+	@echo gitCleanWouldRemove
 	@cat $^ | sed -n -e '/^Would skip repository/d' -e '/^\//{h}' -e '/^Would remove/{x;p;x;p}'
 
