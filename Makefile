@@ -1,4 +1,5 @@
-.PHONY: check gitGc gitCleanWouldRemove gitStatusDirty onlyInSubmoduleTree notInSubmoduleTree gitFsckError gitFsckUnborn
+.PHONY: check gitGc gitCleanWouldRemove gitStatusDirty onlyInSubmoduleTree notInSubmoduleTree gitFsckError gitFsckUnborn\
+	testUndefinedMacro
 
 .DELETE_ON_ERROR: gitStatusDirty.dirs
 
@@ -11,6 +12,23 @@ OUTDIR=$(shell echo $(GITMAINT_MD5) | sed -n -r 's/(^[0-9a-fA-F]{5}).*$$/out-\1/
 vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
+
+define checkEnv
+	ifndef $1
+	  $(error $1 is not set)
+	endif
+endef
+
+define checkMacro
+	ifndef $1
+	  $(error $1 is not defined)
+	endif
+endef
+
+define checkEnvHostname
+  $(call checkEnv CheckEnv)
+	$(call checkEnv Hostname)
+endef
 
 define diffOnlyInLeft
 	@diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^-(.*)$$/\1/p'
@@ -41,7 +59,7 @@ define green
 endef
 
 define yellow
-	@bash -c 'echo -e "\e[33m"$1$2$3$4$5$6$7$8$9"\e[m"'
+	@bash -c 'echo -e "\e[33m$1$2$3$4$5$6$7$8$9\e[m"'
 endef
 
 define blue
@@ -183,16 +201,22 @@ notInSubmoduleTree: notInSubmoduleTree.dirs
 ######################    PLAYGROUND   ########################
 
 testDiffOnlyInRight: left.txt right.txt
+	$(call yellow, $@)
 	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^)) 
 
 testDiffOnlyInLeft: left.txt right.txt
+	$(call yellow, $@)
 	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^)) 
 	
 testDiffInBoth: left.txt right.txt
+	$(call yellow, $@)
 	$(call diffInBoth, $(word 1,$^), $(word 2,$^)) 
 
 testUndefinedMacro:
+	$(call yellow, => $@)
+	$(call checkMacro,undefinedMacro)
 	$(call undefinedMacro)
+	$(call yellow, <= $@)
 
 testColors:
 	$(call red,red)
@@ -202,4 +226,9 @@ testColors:
 	$(call magenta,magenta)
 	$(call cyan,cyan)
 	$(call yellow,yellow)
+
+testCheckEnvDummy:
+	$(call yellow, => $@)
+	$(call checkEnv, DUMMY)
+	$(call yellow, <= $@)
 
