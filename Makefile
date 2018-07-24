@@ -1,4 +1,4 @@
-.PHONY: check gitGc 
+.PHONY: check gitGc gitCleanWouldRemove gitStatusDirty
 
 .DELETE_ON_ERROR: gitStatusDirty.dirs
 
@@ -39,18 +39,17 @@ dotGitDir.dirs: all.dirs
 dotGitFile.dirs: all.files
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 
-gitFsck.txt: dotGitDir.dirs
+gitFsck.txt: dotGit.dirs
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
 
-gitFsckError.txt: gitFsck.txt
-	cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{g;p}' | uniq >$@
-	cat $@
+gitFsckError: gitFsck.txt
+	@cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}'
 
-gitGc: gitFsckError.txt
+gitGc: gitFsckError.dirs
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git gc --prune=now' _
 
-gitUnbornBranch.txt: gitFsck.txt
-	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{g;p}' >$@
+gitFsckUnborn: gitFsck.txt
+	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{g;p}' 
 
 dotGitmodules.files: all.files
 	cat $< | sed -n -e '/\/.gitmodules$$/p' >$@
@@ -61,11 +60,16 @@ dotGitmodules.dirs: all.files
 dotGit.dirs: dotGitDir.dirs dotGitFile.dirs
 	cat $^ | sort | uniq >$@
 
-gitStatusDirty.dirs: gitStatus.txt
-	cat $^ | sed -n -e "/^\//{h}" -e "/^ /{g;p}" >$@
-	@cat $@
-	@test `wc -l $@ | awk '{print $$1}'` -ne 0
+gitStatusDirty: gitStatus.txt
+	@cat $^ | sed -n -e "/^\//{h}" -e "/^ /{x;p;x;p}" 
 
 gitStatus.txt: dotGit.dirs
 	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git status --porcelain' _>$@
+
+gitClean.txt: dotGit.dirs
+	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git clean -ndx' _ >$@
+
+gitCleanWouldRemove: gitClean.txt
+	@cat $^ | sed -n -e '/^Would skip repository/d' -e '/^\//{h}' -e '/^Would remove/{x;p;x;p}'
+
 
