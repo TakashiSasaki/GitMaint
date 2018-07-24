@@ -110,11 +110,14 @@ gitSubmoduleForEachPwd: gitSubmoduleForEachPwd.dirs
 	@echo ----------------------------------
 	@cat $<
 
-gitSubmoduleMissing: gitSubmoduleForEachPwd.dirs dotGit.dirs
-	$(call diffRight, $(word 1,$^), $(word 2,$^)) 
+$(OUTDIR)/onlyInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
+	$(call diffRight, $(word 1,$^), $(word 2,$^))  >$@
 
-gitSubmoduleExcess: gitSubmoduleForEachPwd.dirs dotGit.dirs
-	$(call diffLeft, $(word 1,$^), $(word 2,$^)) 
+$(OUTDIR)/notInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
+	$(call diffLeft, $(word 1,$^), $(word 2,$^))  >$@
+
+
+######################    PLAYGROUND   ########################
 
 testDiffOnlyInRight: left.txt right.txt
 	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^)) 
@@ -124,4 +127,7 @@ testDiffOnlyInLeft: left.txt right.txt
 	
 testDiffInBoth: left.txt right.txt
 	$(call diffInBoth, $(word 1,$^), $(word 2,$^)) 
+
+testUndefinedMacro:
+	$(call undefinedMacro)
 
