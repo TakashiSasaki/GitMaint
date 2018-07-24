@@ -1,0 +1,10 @@
+zero
+one
+three
+four
+right
+five
+eight
+nine
+ten
+

@@ -12,6 +12,18 @@ vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
 
+define diffOnlyInLeft
+	@diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^-(.*)$$/\1/p'
+endef
+
+define diffOnlyInRight
+	@diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^\+(.*)$$/\1/p'
+endef
+
+define diffInBoth
+	@diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^ (.*)$$/\1/p'
+endef
+
 check: clean gitFsckError
 
 $(OUTDIR):
@@ -81,4 +93,35 @@ $(OUTDIR)/gitClean.out: dotGit.dirs
 gitCleanWouldRemove: gitClean.out
 	@echo gitCleanWouldRemove
 	@cat $^ | sed -n -e '/^Would skip repository/d' -e '/^\//{h}' -e '/^Would remove/{x;p;x;p}'
+
+$(OUTDIR)/gitSubmoduleForEachPwd.out: $(OUTDIR)
+ifndef GITMAINT
+	@echo GITMAINT is not set. ; exit 1
+else
+	(cd "$(GITMAINT)"; git submodule foreach --recursive pwd) >$@
+endif
+
+$(OUTDIR)/gitSubmoduleForEachPwd.dirs: gitSubmoduleForEachPwd.out
+	cat $< | sed -n -e '/^\//p' | sort | uniq >$@
+
+gitSubmoduleForEachPwd: gitSubmoduleForEachPwd.dirs
+	@echo ----------------------------------
+	@echo ----- gitSubmoduleForEachPwd -----
+	@echo ----------------------------------
+	@cat $<
+
+gitSubmoduleMissing: gitSubmoduleForEachPwd.dirs dotGit.dirs
+	$(call diffRight, $(word 1,$^), $(word 2,$^)) 
+
+gitSubmoduleExcess: gitSubmoduleForEachPwd.dirs dotGit.dirs
+	$(call diffLeft, $(word 1,$^), $(word 2,$^)) 
+
+testDiffOnlyInRight: left.txt right.txt
+	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^)) 
+
+testDiffOnlyInLeft: left.txt right.txt
+	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^)) 
+	
+testDiffInBoth: left.txt right.txt
+	$(call diffInBoth, $(word 1,$^), $(word 2,$^)) 
 
