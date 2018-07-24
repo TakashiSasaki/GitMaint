@@ -2,6 +2,8 @@
 
 .DELETE_ON_ERROR: gitStatusDirty.dirs
 
+.INTERMEDIATE: temp
+
 check: gitFsckError.txt
 	@echo Showing gitFsckError.txt ..
 	@cat $<
@@ -38,14 +40,14 @@ dotGitFile.dirs: all.files
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 
 gitFsck.txt: dotGitDir.dirs
-	cat $< | xargs -n 1 sh -c 'cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
+	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
 
 gitFsckError.txt: gitFsck.txt
 	cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{g;p}' | uniq >$@
 	cat $@
 
 gitGc: gitFsckError.txt
-	cat $< | xargs -n 1 sh -c 'cd "$$1" ; pwd; git gc --prune=now' _
+	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git gc --prune=now' _
 
 gitUnbornBranch.txt: gitFsck.txt
 	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{g;p}' >$@
@@ -56,8 +58,12 @@ dotGitmodules.files: all.files
 dotGitmodules.dirs: all.files
 	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
 
-gitStatusDirty.dirs: dotGitDir.dirs
-	cat $< | xargs -n 1 sh -c 'cd "$$1" ; pwd ; git status --porcelain' _ | sed -n -e "/^\//{h}" -e "/^ /{g;p}" >$@
+dotGit.dirs: dotGitDir.dirs dotGitFile.dirs
+	cat $^ | sort | uniq >$@
+
+gitStatusDirty.dirs: dotGit.dirs
+	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git status --porcelain' _>temp
+	cat temp | sed -n -e "/^\//{h}" -e "/^ /{g;p}" >$@
 	@cat $@
-	@test `wc -l x | awk '{print $$1}'` -ne 0
+	@test `wc -l $@ | awk '{print $$1}'` -ne 0
 
