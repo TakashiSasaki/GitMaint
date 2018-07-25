@@ -80,7 +80,6 @@ define leave
 @#$(if $(suffix $@),,$(call magenta,"<= $@"))
 endef
 
-
 check: clean gitFsckError
 
 $(OUTDIR):
@@ -198,7 +197,9 @@ gitSubmoduleForEachPwd: gitSubmoduleForEachPwd.dirs
 	$(call leave)
 
 $(OUTDIR)/onlyInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
+	$(call enter)
 	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^))  >$@
+	$(call leave)
 
 onlyInSubmoduleTree: onlyInSubmoduleTree.dirs
 	$(call enter)
