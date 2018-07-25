@@ -48,3 +48,14 @@ define leave
 @#$(if $(suffix $@),,$(call magenta,"<= $@"))
 endef
 
+testColors:
+	$(call enter)
+	$(call red,red)
+	$(call blue,blue)
+	$(call green,green)
+	$(call white,white)
+	$(call magenta,magenta)
+	$(call cyan,cyan)
+	$(call yellow,yellow)
+	$(call leave)
+
