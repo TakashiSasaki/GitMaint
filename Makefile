@@ -66,11 +66,11 @@ define cyan
 endef
 
 define enterCyan
-	$(call cyan, => $@)
+	$(call cyan, "=> $@")
 endef
 
 define leaveCyan
-	$(call cyan, <= $@)
+	$(call cyan, "<= $@")
 endef
 
 define white
@@ -80,11 +80,9 @@ endef
 check: clean gitFsckError
 
 $(OUTDIR):
-	$(call green,$@)
 	mkdir $(OUTDIR)
 
 clean:
-	$(call green,$@)
 	rm -rf ./out-?????/
 	rm -rf *.dirs *.files *.out
 
@@ -92,7 +90,6 @@ $(OUTDIR)/find.out: $(OUTDIR)
 ifndef GITMAINT
 	@echo GITMAINT is not set. ; exit 1
 else
-	$(call green,$@)
 	find $(GITMAINT) -print0 | xargs -0 ls -d --file-type |sort >$@
 endif
 
@@ -100,66 +97,56 @@ $(OUTDIR)/du.dirs: all.dirs
 ifndef GITMAINT
 	@echo GITMAINT is not set. ; exit 1
 else
-	$(call green,$@)
 	 du $(GITMAINT) | sed -r -n -e 's/^[0-9]+[\t ]+//p' | sort >$@
 	 diff $< $@
 endif
 
 $(OUTDIR)/all.dirs: find.out
-	$(call green,$@)
 	cat $< | sed -n 's/\/$$//p' | sort >$@
 
 $(OUTDIR)/all.files: find.out
-	$(call green,$@)
 	cat $< | sed -n '/[^/]$$/p' | sort >$@
 
 $(OUTDIR)/dotGitDir.dirs: all.dirs
-	$(call green,$@)
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 
 $(OUTDIR)/dotGitFile.dirs: all.files
-	$(call green,$@)
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 
 $(OUTDIR)/gitFsck.out: dotGit.dirs
-	$(call green,$@)
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
 
 gitFsckError: gitFsck.out
 	$(call enterCyan)
 	@cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}'
-	$(call exitCyan)
+	$(call leaveCyan)
 
 gitGc: gitFsckError.dirs
-	$(call green,$@)
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git gc --prune=now' _
 
 gitFsckUnborn: gitFsck.out
-	$(call cyan,$@)
+	$(call enterYellow)
 	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{x;p;x;p}' 
+	$(call leaveYellow)
 
 $(OUTDIR)/dotGitmodules.files: all.files
-	$(call green,$@)
 	cat $< | sed -n -e '/\/.gitmodules$$/p' >$@
 
 $(OUTDIR)/dotGitmodules.dirs: all.files
-	$(call green,$@)
 	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
 
 $(OUTDIR)/dotGit.dirs: dotGitDir.dirs dotGitFile.dirs
-	$(call green,$@)
 	cat $^ | sort | uniq >$@
 
 gitStatusDirty: gitStatus.out
-	$(call cyan,$@)
+	$(call enterYellow)
 	@cat $^ | sed -n -e "/^\//{h}" -e "/^ /{x;p;x;p}" 
+	$(call leaveYellow)
 
 $(OUTDIR)/gitStatus.out: dotGit.dirs
-	$(call green,$@)
 	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git status --porcelain' _>$@
 
 $(OUTDIR)/gitClean.out: dotGit.dirs
-	$(call green,$@)
 	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git clean -ndx' _ >$@
 
 gitCleanWouldRemove: gitClean.out
@@ -170,33 +157,32 @@ $(OUTDIR)/gitSubmoduleForEachPwd.out: $(OUTDIR)
 ifndef GITMAINT
 	@echo GITMAINT is not set. ; exit 1
 else
-	$(call green,$@)
 	(cd "$(GITMAINT)"; git submodule foreach --recursive pwd) >$@
 endif
 
 $(OUTDIR)/gitSubmoduleForEachPwd.dirs: gitSubmoduleForEachPwd.out
-	$(call green,$@)
 	cat $< | sed -n -e '/^\//p' | sort | uniq >$@
 
 gitSubmoduleForEachPwd: gitSubmoduleForEachPwd.dirs
-	$(call cyan,$@)
+	$(call enterCyan)
 	@cat $<
+	$(call leaveCyan)
 
 $(OUTDIR)/onlyInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
-	$(call green,$@)
 	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^))  >$@
 
 onlyInSubmoduleTree: onlyInSubmoduleTree.dirs
-	$(call cyan,$@)
+	$(call enterCyan)
 	@cat $<
+	$(call leaveCyan)
 
 $(OUTDIR)/notInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
-	$(call green,$@)
 	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^))  >$@
 
 notInSubmoduleTree: notInSubmoduleTree.dirs
-	$(call cyan,$@)
+	$(call enterCyan)
 	@cat $<
+	$(call leaveCyan)
 
 ######################    PLAYGROUND   ########################
 
