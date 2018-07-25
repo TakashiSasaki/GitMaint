@@ -207,7 +207,9 @@ onlyInSubmoduleTree: onlyInSubmoduleTree.dirs
 	$(call leave)
 
 $(OUTDIR)/notInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
+	$(call enter)
 	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^))  >$@
+	$(call leave)
 
 notInSubmoduleTree: notInSubmoduleTree.dirs
 	$(call enter)
