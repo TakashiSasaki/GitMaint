@@ -1,33 +1,12 @@
 .PHONY: check gitGc gitCleanWouldRemove gitStatusDirty onlyInSubmoduleTree notInSubmoduleTree gitFsckError gitFsckUnborn\
-	testUndefinedMacro
+	testUndefinedMacro \
+	testColors
 
 .DELETE_ON_ERROR: gitStatusDirty.dirs
 
 .INTERMEDIATE: temp
 
-ifndef ROOT
-$(error ROOT is empty or not set.)
-endif
-
-ifndef USER
-$(error USER is empty or not set.)
-endif
-
-ifndef HOST
-  ifdef HOSTNAME
-    HOST=$(HOSTNAME)
-  else
-    ifdef COMPUTERNAME
-      HOST=$(COMPUTERNAME)
-    else
-      ifdef NAME
-        HOST=$(NAME)
-      else
-        HOST=$(shell hostname)
-      endif
-    endif
-  endif
-endif
+include env.mk
 
 URI=file://$(USER)@$(HOST)$(ROOT)
 URIMD5=$(shell echo $(URI)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
@@ -46,67 +25,9 @@ vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
 
-define diffOnlyInLeft
-	diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^-(.*)$$/\1/p'
-endef
+include diff.mk
 
-define diffOnlyInRight
-	diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^\+(.*)$$/\1/p'
-endef
-
-define diffInBoth
-	diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^ (.*)$$/\1/p'
-endef
-
-define resetColor
-	@bash -c 'echo -e "\e[m"'
-endef
-
-define black
-	@bash -c 'echo -e "\e[30m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define red
-	@bash -c 'echo -e "\e[31m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define green
-	@bash -c 'echo -e "\e[32m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define yellow
-	@bash -c 'echo -e "\e[33m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define blue
-	@bash -c 'echo -e "\e[34m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define magenta
-	@bash -c 'echo -e "\e[35m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define cyan
-	@bash -c 'echo -e "\e[36m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define white
-	@bash -c 'echo -e "\e[37m"$1$2$3$4$5$6$7$8$9"\e[m"'
-endef
-
-define enter
-$(if $(filter %.out,$@),$(call cyan,"=> $@"))
-$(if $(filter %.files,$@),$(call green,"=> $@"))
-$(if $(filter %.dirs,$@),$(call yellow,"=> $@"))
-$(if $(suffix $@),,$(call magenta,"=> $@"))
-endef
-
-define leave
-@#$(if $(filter %.out,$@),$(call cyan,"<= $@"))
-@#$(if $(filter %.files,$@),$(call green,"<= $@"))
-@#$(if $(filter %.dirs,$@),$(call yellow,"<= $@"))
-@#$(if $(suffix $@),,$(call magenta,"<= $@"))
-endef
+include color.mk
 
 check: clean gitFsckError
 
