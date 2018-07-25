@@ -13,23 +13,6 @@ vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
 
-define checkEnv
-	ifndef $1
-	  $(error $1 is not set)
-	endif
-endef
-
-define checkMacro
-	ifndef $1
-	  $(error $1 is not defined)
-	endif
-endef
-
-define checkEnvHostname
-  $(call checkEnv CheckEnv)
-	$(call checkEnv Hostname)
-endef
-
 define diffOnlyInLeft
 	@diff -U10 $1 $2 | tail -n +3 | sed -n -r 's/^-(.*)$$/\1/p'
 endef
@@ -59,7 +42,15 @@ define green
 endef
 
 define yellow
-	@bash -c 'echo -e "\e[33m$1$2$3$4$5$6$7$8$9\e[m"'
+	@bash -c 'echo -e "\e[33m"$1$2$3$4$5$6$7$8$9"\e[m"'
+endef
+
+define enterYellow
+	$(call yellow, "=> $@")
+endef
+
+define leaveYellow
+	$(call yellow, "<= $@")
 endef
 
 define blue
@@ -72,6 +63,14 @@ endef
 
 define cyan
 	@bash -c 'echo -e "\e[36m"$1$2$3$4$5$6$7$8$9"\e[m"'
+endef
+
+define enterCyan
+	$(call cyan, => $@)
+endef
+
+define leaveCyan
+	$(call cyan, <= $@)
 endef
 
 define white
@@ -127,8 +126,9 @@ $(OUTDIR)/gitFsck.out: dotGit.dirs
 	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
 
 gitFsckError: gitFsck.out
-	$(call cyan,$@)
+	$(call enterCyan)
 	@cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}'
+	$(call exitCyan)
 
 gitGc: gitFsckError.dirs
 	$(call green,$@)
@@ -201,22 +201,19 @@ notInSubmoduleTree: notInSubmoduleTree.dirs
 ######################    PLAYGROUND   ########################
 
 testDiffOnlyInRight: left.txt right.txt
-	$(call yellow, $@)
+	$(call enterYellow)
 	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^)) 
+	$(call leaveYellow)
 
 testDiffOnlyInLeft: left.txt right.txt
-	$(call yellow, $@)
+	$(call enterYellow)
 	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^)) 
+	$(call leaveYellow)
 	
 testDiffInBoth: left.txt right.txt
-	$(call yellow, $@)
+	$(call enterYellow)
 	$(call diffInBoth, $(word 1,$^), $(word 2,$^)) 
-
-testUndefinedMacro:
-	$(call yellow, => $@)
-	$(call checkMacro,undefinedMacro)
-	$(call undefinedMacro)
-	$(call yellow, <= $@)
+	$(call leaveYellow)
 
 testColors:
 	$(call red,red)
@@ -226,9 +223,4 @@ testColors:
 	$(call magenta,magenta)
 	$(call cyan,cyan)
 	$(call yellow,yellow)
-
-testCheckEnvDummy:
-	$(call yellow, => $@)
-	$(call checkEnv, DUMMY)
-	$(call yellow, <= $@)
 
