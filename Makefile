@@ -5,14 +5,42 @@
 
 .INTERMEDIATE: temp
 
-define GITMAINT_DIR
-$(if $(GITMAINT),$(GITMAINT),$(error GITMAINT is empty or not set.))
-endef
+ifndef ROOT
+$(error ROOT is empty or not set.)
+endif
 
-GITMAINT_MD5=$(shell echo $(GITMAINT)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
+ifndef USER
+$(error USER is empty or not set.)
+endif
 
-OUTDIR=$(shell echo $(GITMAINT_MD5) | sed -n -r 's/(^[0-9a-fA-F]{5}).*$$/out-\1/p')
+ifndef HOST
+  ifdef HOSTNAME
+    HOST=$(HOSTNAME)
+  else
+    ifdef COMPUTERNAME
+      HOST=$(COMPUTERNAME)
+    else
+      ifdef NAME
+        HOST=$(NAME)
+      else
+        HOST=$(shell hostname)
+      endif
+    endif
+  endif
+endif
 
+URI=file://$(USER)@$(HOST)$(ROOT)
+URIMD5=$(shell echo $(URI)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
+OUTDIR=$(shell echo $(URIMD5) | sed -n -r 's/(^[0-9a-fA-F]{5}).*$$/out-\1/p')
+
+showValues:
+	@echo ROOT=$(ROOT)
+	@echo USER=$(USER)
+	@echo HOST=$(HOST)
+	@echo URI=$(URI)
+	@echo URIMD5=$(URIMD5)
+	@echo OUTDIR=$(OUTDIR)
+	@echo MAKE_HOST=$(MAKE_HOST)
 
 vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
@@ -95,13 +123,13 @@ clean:
 
 $(OUTDIR)/find.out: $(OUTDIR)
 	$(call enter)
-	find $(call GITMAINT_DIR) -print0 \
+	find $(ROOT) -print0 \
 		| xargs -0 ls -d --file-type |sort >$@
 	$(call leave)
 
 $(OUTDIR)/du.dirs: all.dirs 
 	$(call enter)
-	du $(call GITMAINT_DIR) \
+	du $(ROOT) \
 	 | sed -r -n -e 's/^[0-9]+[\t ]+//p' | sort >$@
 	diff $< $@
 	$(call leave)
@@ -183,7 +211,7 @@ gitCleanWouldRemove: gitClean.out
 
 $(OUTDIR)/gitSubmoduleForEachPwd.out: $(OUTDIR)
 	$(call enter)
-	(cd $(call GITMAINT_DIR); git submodule foreach --recursive pwd) >$@
+	(cd $(ROOT); git submodule foreach --recursive pwd) >$@
 	$(call leave)
 
 $(OUTDIR)/gitSubmoduleForEachPwd.dirs: gitSubmoduleForEachPwd.out
@@ -243,3 +271,4 @@ testColors:
 	$(call cyan,cyan)
 	$(call yellow,yellow)
 	$(call leave)
+
