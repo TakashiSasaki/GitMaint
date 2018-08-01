@@ -54,7 +54,7 @@ find.out:
 		| xargs -0 ls -d --file-type \
 		| sort \
 		>$(OUTDIR)/$@
-	wc -l $(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
 	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
@@ -64,7 +64,7 @@ find.files: find.out
 		| sed -n '/[^/]$$/p'\
 		| sort \
 		>$(OUTDIR)/$@
-	wc -l $(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
 	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
@@ -75,7 +75,7 @@ find.dirs: find.out
 		| sed -n 's/\/$$//p' \
 		| sort \
 		> $(OUTDIR)/$@
-	wc -l $(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
 	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
@@ -86,19 +86,25 @@ du.out:
 		| sed -r -n -e 's/^[0-9]+[\t ]+//p' \
 		| sort \
 		>$(OUTDIR)/$@
-	wc -l $(OUTDIR)/$@
-	test -s $(OUTDIR)/$@ 
+	@wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
 check-find-du: du.out find.dirs
 	diff $(OUTDIR)/$(word 1, $(notdir $^)) $(OUTDIR)/$(word 2, $(notdir $^))
 
-$(OUTDIR)/dotGitDir.dirs: find.dirs
+#$(OUTDIR)/dotGitDir.dirs: find.dirs
+working.dirs: find.dirs
 	$(call enter)
-	cat $< | sed -n 's/\/.git$$//p' | sort >$@
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n 's/\/.git$$//p' \
+		| sort \
+		>$(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-$(OUTDIR)/dotGitFile.dirs: all.files
+$(OUTDIR)/dotGitFile.dirs: find.files
 	$(call enter)
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 	$(call leave)
@@ -123,19 +129,24 @@ gitFsckUnborn: gitFsck.out
 	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{x;p;x;p}' 
 	$(call leave)
 
-$(OUTDIR)/dotGitmodules.files: all.files
+$(OUTDIR)/dotGitmodules.files: find.files
 	$(call enter)
 	cat $< | sed -n -e '/\/.gitmodules$$/p' >$@
 	$(call leave)
 
-$(OUTDIR)/dotGitmodules.dirs: all.files
+$(OUTDIR)/dotGitmodules.dirs: find.files
 	$(call enter)
 	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
 	$(call leave)
 
-$(OUTDIR)/dotGit.dirs: dotGitDir.dirs dotGitFile.dirs
+dotGit.dirs: working.dirs dotGitFile.dirs
 	$(call enter)
-	cat $^ | sort | uniq >$@
+	cat $(OUTDIR)/$(word 1,$(notdir $^)) $(OUTDIR)/$(word 2,$(notdir $^)) \
+		| sort \
+		| uniq \
+		>$(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
 gitStatusDirty: gitStatus.out
