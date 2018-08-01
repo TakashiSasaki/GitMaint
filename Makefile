@@ -1,6 +1,15 @@
-.PHONY: check gitGc gitCleanWouldRemove gitStatusDirty onlyInSubmoduleTree notInSubmoduleTree gitFsckError gitFsckUnborn\
+.PHONY: \
+	check \
+	gitCleanWouldRemove \
+	git-fsck-all\
+	gitFsckUnborn\
+	gitGc \
+	gitStatusDirty \
+	help \
+	notInSubmoduleTree \
+	onlyInSubmoduleTree \
+	testColors \
 	testUndefinedMacro \
-	testColors
 
 .DELETE_ON_ERROR: gitStatusDirty.dirs
 
@@ -12,7 +21,7 @@ URI=file://$(USER)@$(HOST)$(ROOT)
 URIMD5=$(shell echo $(URI)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
 OUTDIR=$(shell echo $(URIMD5) | sed -n -r 's/(^[0-9a-fA-F]{5}).*$$/out-\1/p')
 
-showValues:
+help:
 	@echo ROOT=$(ROOT)
 	@echo USER=$(USER)
 	@echo HOST=$(HOST)
@@ -24,17 +33,11 @@ showValues:
 vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
+#GPATH=$(OUTDIR)
 
 include diff.mk
 
 include color.mk
-
-check: clean gitFsckError
-
-$(OUTDIR):
-	$(call enter)
-	mkdir $(OUTDIR)
-	$(call leave)
 
 clean:
 	$(call enter)
@@ -42,30 +45,55 @@ clean:
 	rm -rf *.dirs *.files *.out
 	$(call leave)
 
-$(OUTDIR)/find.out: $(OUTDIR)
+check: clean gitFsckError
+
+find.out:
 	$(call enter)
+	@-mkdir $(OUTDIR)
 	find $(ROOT) -print0 \
-		| xargs -0 ls -d --file-type |sort >$@
+		| xargs -0 ls -d --file-type \
+		| sort \
+		>$(OUTDIR)/$@
+	wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-$(OUTDIR)/du.dirs: all.dirs 
+find.files: find.out
 	$(call enter)
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n '/[^/]$$/p'\
+		| sort \
+		>$(OUTDIR)/$@
+	wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
+	$(call leave)
+
+find.dirs: find.out
+	$(call enter)
+	@-mkdir $(OUTDIR)
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n 's/\/$$//p' \
+		| sort \
+		> $(OUTDIR)/$@
+	wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
+	$(call leave)
+
+du.out:
+	$(call enter)
+	@-mkdir $(OUTDIR)
 	du $(ROOT) \
-	 | sed -r -n -e 's/^[0-9]+[\t ]+//p' | sort >$@
-	diff $< $@
+		| sed -r -n -e 's/^[0-9]+[\t ]+//p' \
+		| sort \
+		>$(OUTDIR)/$@
+	wc -l $(OUTDIR)/$@
+	test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-$(OUTDIR)/all.dirs: find.out
-	$(call enter)
-	cat $< | sed -n 's/\/$$//p' | sort >$@
-	$(call leave)
+check-find-du: du.out find.dirs
+	diff $(OUTDIR)/$(word 1, $(notdir $^)) $(OUTDIR)/$(word 2, $(notdir $^))
 
-$(OUTDIR)/all.files: find.out
-	$(call enter)
-	cat $< | sed -n '/[^/]$$/p' | sort >$@
-	$(call leave)
-
-$(OUTDIR)/dotGitDir.dirs: all.dirs
+$(OUTDIR)/dotGitDir.dirs: find.dirs
 	$(call enter)
 	cat $< | sed -n 's/\/.git$$//p' | sort >$@
 	$(call leave)
@@ -77,10 +105,10 @@ $(OUTDIR)/dotGitFile.dirs: all.files
 
 $(OUTDIR)/gitFsck.out: dotGit.dirs
 	$(call enter)
-	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ >$@
+	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ | tee $@
 	$(call leave)
 
-gitFsckError: gitFsck.out
+git-fsck-all: gitFsck.out
 	$(call enter)
 	@cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}'
 	$(call leave)
