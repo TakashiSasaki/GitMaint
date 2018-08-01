@@ -93,7 +93,6 @@ du.out:
 check-find-du: du.out find.dirs
 	diff $(OUTDIR)/$(word 1, $(notdir $^)) $(OUTDIR)/$(word 2, $(notdir $^))
 
-#$(OUTDIR)/dotGitDir.dirs: find.dirs
 working.dirs: find.dirs
 	$(call enter)
 	cat $(OUTDIR)/$(notdir $<) \
@@ -104,9 +103,14 @@ working.dirs: find.dirs
 	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-$(OUTDIR)/dotGitFile.dirs: find.files
+module.dirs: find.files
 	$(call enter)
-	cat $< | sed -n 's/\/.git$$//p' | sort >$@
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n 's/\/.git$$//p' \
+		| sort \
+		>$(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
 $(OUTDIR)/gitFsck.out: dotGit.dirs
@@ -139,7 +143,7 @@ $(OUTDIR)/dotGitmodules.dirs: find.files
 	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
 	$(call leave)
 
-dotGit.dirs: working.dirs dotGitFile.dirs
+dotGit.dirs: working.dirs module.dirs
 	$(call enter)
 	cat $(OUTDIR)/$(word 1,$(notdir $^)) $(OUTDIR)/$(word 2,$(notdir $^)) \
 		| sort \
