@@ -1,7 +1,7 @@
 .PHONY: \
-	check-all \
+	git-fsck \
+	git-gc \
 	gitCleanWouldRemove \
-	git-fsck-all\
 	gitFsckUnborn\
 	gitGc \
 	gitStatusDirty \
@@ -32,7 +32,8 @@ help:
 	@echo MAKE_HOST=$(MAKE_HOST)
 	@echo
 	@echo -- Example targets:
-	@echo make check-all
+	@echo make git-fsck
+	@echo make git-gc
 
 vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
@@ -43,8 +44,6 @@ vpath %.error $(OUTDIR)
 include diff.mk
 
 include color.mk
-
-check-all: git-fsck
 
 clean:
 	$(call enter)
@@ -144,11 +143,15 @@ git-fsck.error: git-fsck.out
 		| sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}' \
 		>$(OUTDIR)/$@
 	@wc -l $(OUTDIR)/$@
-	@test ! -s $(OUTDIR)/$@ 
-	@if [ -s $(OUTDIR)/$@ ]; then rm $(OUTDIR)/$@; fi
+	#@test ! -s $(OUTDIR)/$@ 
+	if [ ! -s $(OUTDIR)/$@ ]; then rm $(OUTDIR)/$@; fi
 	$(call leave)
 
-git-fsck: git-fsck.error
+git-fsck::
+	-rm $(OUTDIR)/git-fsck.out
+	-rm $(OUTDIR)/git-fsck.error
+
+git-fsck:: git-fsck.error
 	@cat $(OUTDIR)/$(notdir $<) 
 	@wc -l $(OUTDIR)/$@
 	@test ! -s $(OUTDIR)/$@ 
@@ -179,11 +182,6 @@ git-gc:: git-gc.error
 	@cat $(OUTDIR)/$(notdir $<) 
 	@-wc -l $(OUTDIR)/$@
 	@test ! -s $(OUTDIR)/$@ 
-
-gitFsckUnborn: gitFsck.out
-	$(call enter)
-	cat $< | sed -n -e '/^\//h' -e '/HEAD points to an unborn branch/{x;p;x;p}' 
-	$(call leave)
 
 $(OUTDIR)/dotGitmodules.files: find.files
 	$(call enter)
