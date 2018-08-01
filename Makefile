@@ -1,5 +1,5 @@
 .PHONY: \
-	check \
+	check-all \
 	gitCleanWouldRemove \
 	git-fsck-all\
 	gitFsckUnborn\
@@ -11,7 +11,7 @@
 	testColors \
 	testUndefinedMacro \
 
-.DELETE_ON_ERROR: gitStatusDirty.dirs
+.DELETE_ON_ERROR: gitStatusDirty.dirs git-fsck.error
 
 .INTERMEDIATE: temp
 
@@ -22,6 +22,7 @@ URIMD5=$(shell echo $(URI)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
 OUTDIR=$(shell echo $(URIMD5) | sed -n -r 's/(^[0-9a-fA-F]{5}).*$$/out-\1/p')
 
 help:
+	@echo -- Environment:
 	@echo ROOT=$(ROOT)
 	@echo USER=$(USER)
 	@echo HOST=$(HOST)
@@ -29,23 +30,27 @@ help:
 	@echo URIMD5=$(URIMD5)
 	@echo OUTDIR=$(OUTDIR)
 	@echo MAKE_HOST=$(MAKE_HOST)
+	@echo
+	@echo -- Example targets:
+	@echo make check-all
 
 vpath %.out $(OUTDIR)
 vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
+vpath %.error $(OUTDIR)
 #GPATH=$(OUTDIR)
 
 include diff.mk
 
 include color.mk
 
+check-all: git-fsck
+
 clean:
 	$(call enter)
 	rm -rf ./out-?????/
 	rm -rf *.dirs *.files *.out
 	$(call leave)
-
-check: clean gitFsckError
 
 find.out:
 	$(call enter)
@@ -90,7 +95,7 @@ du.out:
 	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-check-find-du: du.out find.dirs
+diff-find-du: du.out find.dirs
 	diff $(OUTDIR)/$(word 1, $(notdir $^)) $(OUTDIR)/$(word 2, $(notdir $^))
 
 working.dirs: find.dirs
@@ -113,15 +118,39 @@ module.dirs: find.files
 	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-$(OUTDIR)/gitFsck.out: dotGit.dirs
+repo.dirs: working.dirs module.dirs
 	$(call enter)
-	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ | tee $@
+	cat $(OUTDIR)/$(word 1,$(notdir $^)) $(OUTDIR)/$(word 2,$(notdir $^)) \
+		| sort \
+		| uniq \
+		>$(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
 
-git-fsck-all: gitFsck.out
+git-fsck.out: repo.dirs
 	$(call enter)
-	@cat $< | sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}'
+	cat $(OUTDIR)/$(notdir $<) \
+		| xargs -n 1 sh -c \
+			'set -e; cd "$$1" ; pwd; git fsck --no-progress --full --strict 2>&1' _ \
+		> $(OUTDIR)/$@ 
+	@wc -l $(OUTDIR)/$@
+	@test -s $(OUTDIR)/$@ 
 	$(call leave)
+
+git-fsck.error: git-fsck.out
+	$(call enter)
+	@cat $(OUTDIR)/$(notdir $<) \
+		| sed -n -e '/^\//h' -e '/^[^\/]/{x;p;x;p}' \
+		>$(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
+	@test ! -s $(OUTDIR)/$@ 
+	$(call leave)
+
+git-fsck: git-fsck.error
+	@cat $(OUTDIR)/$(notdir $<) 
+	@wc -l $(OUTDIR)/$@
+	@test ! -s $(OUTDIR)/$@ 
 
 gitGc: gitFsckError.dirs
 	$(call enter)
@@ -143,27 +172,17 @@ $(OUTDIR)/dotGitmodules.dirs: find.files
 	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
 	$(call leave)
 
-dotGit.dirs: working.dirs module.dirs
-	$(call enter)
-	cat $(OUTDIR)/$(word 1,$(notdir $^)) $(OUTDIR)/$(word 2,$(notdir $^)) \
-		| sort \
-		| uniq \
-		>$(OUTDIR)/$@
-	@wc -l $(OUTDIR)/$@
-	@test -s $(OUTDIR)/$@ 
-	$(call leave)
-
 gitStatusDirty: gitStatus.out
 	$(call enter)
 	@cat $^ | sed -n -e "/^\//{h}" -e "/^ /{x;p;x;p}" 
 	$(call leave)
 
-$(OUTDIR)/gitStatus.out: dotGit.dirs
+$(OUTDIR)/gitStatus.out: repo.dirs
 	$(call enter)
 	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git status --porcelain' _>$@
 	$(call leave)
 
-$(OUTDIR)/gitClean.out: dotGit.dirs
+$(OUTDIR)/gitClean.out: repo.dirs
 	$(call enter)
 	cat $^ | xargs -n 1 sh -c 'set -e; cd "$$1"; pwd; git clean -ndx' _ >$@
 	$(call leave)
@@ -188,7 +207,7 @@ gitSubmoduleForEachPwd: gitSubmoduleForEachPwd.dirs
 	@cat $<
 	$(call leave)
 
-$(OUTDIR)/onlyInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
+$(OUTDIR)/onlyInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs repo.dirs
 	$(call enter)
 	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^))  >$@
 	$(call leave)
@@ -198,7 +217,7 @@ onlyInSubmoduleTree: onlyInSubmoduleTree.dirs
 	@cat $<
 	$(call leave)
 
-$(OUTDIR)/notInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs dotGit.dirs
+$(OUTDIR)/notInSubmoduleTree.dirs: gitSubmoduleForEachPwd.dirs repo.dirs
 	$(call enter)
 	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^))  >$@
 	$(call leave)
