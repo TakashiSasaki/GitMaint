@@ -145,6 +145,7 @@ git-fsck.error: git-fsck.out
 		>$(OUTDIR)/$@
 	@wc -l $(OUTDIR)/$@
 	@test ! -s $(OUTDIR)/$@ 
+	@if [ -s $(OUTDIR)/$@ ]; then rm $(OUTDIR)/$@; fi
 	$(call leave)
 
 git-fsck: git-fsck.error
@@ -152,10 +153,32 @@ git-fsck: git-fsck.error
 	@wc -l $(OUTDIR)/$@
 	@test ! -s $(OUTDIR)/$@ 
 
-gitGc: gitFsckError.dirs
+git-gc.out: repo.dirs
 	$(call enter)
-	cat $< | xargs -n 1 sh -c 'set -e; cd "$$1" ; pwd; git gc --prune=now' _
+	cat $(OUTDIR)/$(notdir $<) \
+		| xargs -n 1 sh -c \
+			'set -e; cd "$$1" ; pwd; git gc --prune=now' _  \
+		2>&1| tee $(OUTDIR)/$@
 	$(call leave)
+
+git-gc.error: git-gc.out
+	$(call enter)
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n -e '/^\//h' -e '/fatal/{x;p;x;p}' \
+		2>&1 | tee $(OUTDIR)/$@
+	@wc -l $(OUTDIR)/$@
+	@test ! -s $(OUTDIR)/$@ 
+	@if [ -s $(OUTDIR)/$@ ]; then rm $(OUTDIR)/$@; fi
+	$(call leave)
+
+git-gc::
+	-rm $(OUTDIR)/git-gc.error
+	-rm $(OUTDIR)/git-gc.out
+
+git-gc:: git-gc.error
+	@cat $(OUTDIR)/$(notdir $<) 
+	@-wc -l $(OUTDIR)/$@
+	@test ! -s $(OUTDIR)/$@ 
 
 gitFsckUnborn: gitFsck.out
 	$(call enter)
