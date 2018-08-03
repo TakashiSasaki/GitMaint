@@ -8,7 +8,6 @@
 	help \
 	notInSubmoduleTree \
 	onlyInSubmoduleTree \
-	testColors \
 	testUndefinedMacro \
 
 .DELETE_ON_ERROR: gitStatusDirty.dirs git-fsck.error
@@ -183,14 +182,20 @@ git-gc:: git-gc.error
 	@-wc -l $(OUTDIR)/$@
 	@test ! -s $(OUTDIR)/$@ 
 
-$(OUTDIR)/dotGitmodules.files: find.files
+gitmodules.files: find.files
 	$(call enter)
-	cat $< | sed -n -e '/\/.gitmodules$$/p' >$@
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n -e '/.*\/\.gitmodules$$/p' \
+		>$(OUTDIR)/$@
+	#cat $(OUTDIR)/$@
 	$(call leave)
 
-$(OUTDIR)/dotGitmodules.dirs: find.files
+gitconfig.files: find.files
 	$(call enter)
-	cat $< | sed -n -e 's/\/.gitmodules$$//p' >$@
+	cat $(OUTDIR)/$(notdir $<) \
+		| sed -n -e '/.*\/\.git\/config$$/p' \
+		>$(OUTDIR)/$@
+	#cat $(OUTDIR)/$@
 	$(call leave)
 
 gitStatusDirty: gitStatus.out
@@ -248,31 +253,5 @@ notInSubmoduleTree: notInSubmoduleTree.dirs
 	@cat $<
 	$(call leave)
 
-######################    PLAYGROUND   ########################
-
-testDiffOnlyInRight: left.txt right.txt
-	$(call enter)
-	$(call diffOnlyInRight, $(word 1,$^), $(word 2,$^)) 
-	$(call leave)
-
-testDiffOnlyInLeft: left.txt right.txt
-	$(call enter)
-	$(call diffOnlyInLeft, $(word 1,$^), $(word 2,$^)) 
-	$(call leave)
-	
-testDiffInBoth: left.txt right.txt
-	$(call enter)
-	$(call diffInBoth, $(word 1,$^), $(word 2,$^)) 
-	$(call leave)
-
-testColors:
-	$(call enter)
-	$(call red,red)
-	$(call blue,blue)
-	$(call green,green)
-	$(call white,white)
-	$(call magenta,magenta)
-	$(call cyan,cyan)
-	$(call yellow,yellow)
-	$(call leave)
+######################   PLAYGROUND   ########################
 
