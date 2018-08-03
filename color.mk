@@ -1,3 +1,14 @@
+test-color-mk:
+	$(call enter)
+	$(call red,red)
+	$(call blue,blue)
+	$(call green,green)
+	$(call white,white)
+	$(call magenta,magenta)
+	$(call cyan,cyan)
+	$(call yellow,yellow)
+	$(call leave)
+
 define resetColor
 	@bash -c 'echo -e "\e[m"'
 endef
@@ -42,20 +53,9 @@ $(if $(suffix $@),,$(call magenta,"=> $@"))
 endef
 
 define leave
-@#$(if $(filter %.out,$@),$(call cyan,"<= $@"))
-@#$(if $(filter %.files,$@),$(call green,"<= $@"))
-@#$(if $(filter %.dirs,$@),$(call yellow,"<= $@"))
-@#$(if $(suffix $@),,$(call magenta,"<= $@"))
+$(if $(filter %.out,$@),$(call cyan,"<= $@"))
+$(if $(filter %.files,$@),$(call green,"<= $@"))
+$(if $(filter %.dirs,$@),$(call yellow,"<= $@"))
+$(if $(suffix $@),,$(call magenta,"<= $@"))
 endef
-
-testColors:
-	$(call enter)
-	$(call red,red)
-	$(call blue,blue)
-	$(call green,green)
-	$(call white,white)
-	$(call magenta,magenta)
-	$(call cyan,cyan)
-	$(call yellow,yellow)
-	$(call leave)
 
