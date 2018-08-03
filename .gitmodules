@@ -1,0 +1,3 @@
+[submodule "MakefileLib"]
+	path = MakefileLib
+	url = ./MakefileLib/
