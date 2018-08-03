@@ -1,3 +1,21 @@
+include MakefileLib/env.mk
+include MakefileLib/diff.mk
+include MakefileLib/color.mk
+
+define enter
+$(if $(filter %.out,$@),$(call cyan,"=> $@"))
+$(if $(filter %.files,$@),$(call green,"=> $@"))
+$(if $(filter %.dirs,$@),$(call yellow,"=> $@"))
+$(if $(suffix $@),,$(call magenta,"=> $@"))
+endef
+
+define leave
+$(if $(filter %.out,$@),$(call cyan,"<= $@"))
+$(if $(filter %.files,$@),$(call green,"<= $@"))
+$(if $(filter %.dirs,$@),$(call yellow,"<= $@"))
+$(if $(suffix $@),,$(call magenta,"<= $@"))
+endef
+
 .PHONY: \
 	git-fsck \
 	git-gc \
@@ -14,22 +32,12 @@
 
 .INTERMEDIATE: temp
 
-include env.mk
 
 URI=file://$(USER)@$(HOST)$(ROOT)
 URIMD5=$(shell echo $(URI)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
 OUTDIR=$(shell echo $(URIMD5) | sed -n -r 's/(^[0-9a-fA-F]{5}).*$$/out-\1/p')
 
 help:
-	@echo -- Environment:
-	@echo ROOT=$(ROOT)
-	@echo USER=$(USER)
-	@echo HOST=$(HOST)
-	@echo URI=$(URI)
-	@echo URIMD5=$(URIMD5)
-	@echo OUTDIR=$(OUTDIR)
-	@echo MAKE_HOST=$(MAKE_HOST)
-	@echo
 	@echo -- Example targets:
 	@echo make git-fsck
 	@echo make git-gc
@@ -39,10 +47,6 @@ vpath %.dirs $(OUTDIR)
 vpath %.files $(OUTDIR)
 vpath %.error $(OUTDIR)
 #GPATH=$(OUTDIR)
-
-include diff.mk
-
-include color.mk
 
 clean:
 	$(call enter)
