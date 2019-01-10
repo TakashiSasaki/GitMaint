@@ -1,6 +1,6 @@
-include MakefileLib/env.mk
-include MakefileLib/diff.mk
-include MakefileLib/color.mk
+include mk/env.mk
+include mk/diff.mk
+include mk/color.mk
 
 define enter
 $(if $(filter %.out,$@),$(call cyan,"=> $@"))
@@ -31,7 +31,6 @@ endef
 .DELETE_ON_ERROR: gitStatusDirty.dirs git-fsck.error
 
 .INTERMEDIATE: temp
-
 
 URI=file://$(USER)@$(HOST)$(ROOT)
 URIMD5=$(shell echo $(URI)| md5sum | sed -n -r 's/(^[0-9a-fA-F]+).*$$/\1/p')
